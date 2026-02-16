@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Flip Clock</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Dark mode colors (default) */
+            --bg-primary: #0a0a0a;
+            --bg-card: rgba(20, 20, 20, 0.6);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.35);
+            --text-tertiary: rgba(255, 255, 255, 0.25);
+            --digit-bg: linear-gradient(180deg, #1a1a1a 0%, #141414 100%);
+            --digit-border: rgba(255, 255, 255, 0.06);
+            --btn-bg: rgba(255, 255, 255, 0.04);
+            --btn-border: rgba(255, 255, 255, 0.12);
+            --btn-text: rgba(255, 255, 255, 0.7);
+        }
+
+        body.light-mode {
+            /* Light mode colors */
+            --bg-primary: #f5f5f5;
+            --bg-card: rgba(255, 255, 255, 0.8);
+            --border-color: rgba(0, 0, 0, 0.08);
+            --text-primary: #0a0a0a;
+            --text-secondary: rgba(0, 0, 0, 0.5);
+            --text-tertiary: rgba(0, 0, 0, 0.3);
+            --digit-bg: linear-gradient(180deg, #ffffff 0%, #f8f8f8 100%);
+            --digit-border: rgba(0, 0, 0, 0.08);
+            --btn-bg: rgba(0, 0, 0, 0.04);
+            --btn-border: rgba(0, 0, 0, 0.12);
+            --btn-text: rgba(0, 0, 0, 0.7);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            transition: background 0.4s ease;
+        }
+
+        .title {
+            position: absolute;
+            top: 70px;
+            font-size: 2rem;
+            font-weight: 300;
+            letter-spacing: 10px;
+            color: var(--text-primary);
+            opacity: 0.8;
+            transition: color 0.4s ease;
+        }
+
+        .clock-container {
+            display: flex;
+            gap: 50px;
+            align-items: center;
+            padding: 70px 60px;
+            background: var(--bg-card);
+            backdrop-filter: blur(40px);
+            border-radius: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.3);
+            transition: all 0.4s ease;
+        }
+
+        .time-unit {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .label {
+            font-size: 0.75rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            font-weight: 400;
+            transition: color 0.4s ease;
+        }
+
+        .digit-pair {
+            display: flex;
+            gap: 10px;
+        }
+
+        .digit-wrapper {
+            position: relative;
+            width: 110px;
+            height: 150px;
+            perspective: 1200px;
+        }
+
+        .digit-flipper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+        }
+
+        .digit-card {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--digit-bg);
+            border: 1px solid var(--digit-border);
+            border-radius: 12px;
+            box-shadow: 
+                inset 0 1px 0 rgba(255, 255, 255, 0.03),
+                0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: background 0.4s ease, border 0.4s ease;
+        }
+
+        .digit-card-front {
+            transform: rotateY(0deg);
+        }
+
+        .digit-card-back {
+            transform: rotateY(180deg);
+        }
+
+        .digit-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 100px;
+            font-weight: 800;
+            color: var(--text-primary);
+            user-select: none;
+            line-height: 1;
+            transition: color 0.4s ease;
+        }
+
+        /* Animation states */
+        .digit-flipper {
+            transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+            transform: rotateY(0deg);
+        }
+
+        .digit-flipper.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .separator {
+            font-size: 60px;
+            color: var(--text-secondary);
+            font-weight: 300;
+            margin: 0 5px;
+            animation: pulse 2s ease-in-out infinite;
+            transition: color 0.4s ease;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0.2; }
+        }
+
+        .date {
+            position: absolute;
+            bottom: 70px;
+            font-size: 0.95rem;
+            letter-spacing: 2px;
+            color: var(--text-tertiary);
+            font-weight: 300;
+            transition: color 0.4s ease;
+        }
+
+        .fullscreen-btn {
+            position: fixed;
+            bottom: 35px;
+            right: 35px;
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-border);
+            color: var(--btn-text);
+            padding: 12px 26px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .fullscreen-btn:hover {
+            background: var(--btn-bg);
+            border-color: var(--btn-border);
+            color: var(--text-primary);
+            opacity: 0.9;
+        }
+
+        /* Theme toggle button */
+        .theme-toggle {
+            position: fixed;
+            bottom: 35px;
+            left: 35px;
+            width: 50px;
+            height: 50px;
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-border);
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1) rotate(20deg);
+            background: var(--btn-bg);
+            opacity: 0.9;
+        }
+
+        .music-controls {
+            position: fixed;
+            bottom: 35px;
+            left: 35px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 12px 20px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+        }
+
+        .music-btn {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            padding: 5px;
+        }
+
+        .music-btn:hover {
+            color: rgba(255, 255, 255, 0.9);
+            transform: scale(1.1);
+        }
+
+        .music-label {
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.5);
+            font-family: 'Inter', sans-serif;
+        }
+
+        @media (max-width: 1024px) {
+            .digit-wrapper {
+                width: 90px;
+                height: 130px;
+            }
+
+            .digit-number {
+                font-size: 80px;
+            }
+
+            .clock-container {
+                gap: 35px;
+                padding: 50px 40px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .title {
+                font-size: 1.5rem;
+                top: 40px;
+            }
+
+            .clock-container {
+                flex-direction: column;
+                gap: 35px;
+                padding: 50px 30px;
+            }
+
+            .separator {
+                display: none;
+            }
+
+            .digit-wrapper {
+                width: 80px;
+                height: 115px;
+            }
+
+            .digit-number {
+                font-size: 70px;
+            }
+
+            .theme-toggle {
+                bottom: 25px;
+                left: 25px;
+                width: 45px;
+                height: 45px;
+                font-size: 1.1rem;
+            }
+
+            .fullscreen-btn {
+                bottom: 25px;
+                right: 25px;
+                padding: 10px 20px;
+                font-size: 0.7rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="title">FLIPCLOCK</div>
+
+    <div class="clock-container">
+        <div class="time-unit">
+            <div class="label">Hours</div>
+            <div class="digit-pair">
+                <div class="digit-wrapper" id="hour-tens"></div>
+                <div class="digit-wrapper" id="hour-ones"></div>
+            </div>
+        </div>
+
+        <div class="separator">:</div>
+
+        <div class="time-unit">
+            <div class="label">Minutes</div>
+            <div class="digit-pair">
+                <div class="digit-wrapper" id="min-tens"></div>
+                <div class="digit-wrapper" id="min-ones"></div>
+            </div>
+        </div>
+
+        <div class="separator">:</div>
+
+        <div class="time-unit">
+            <div class="label">Seconds</div>
+            <div class="digit-pair">
+                <div class="digit-wrapper" id="sec-tens"></div>
+                <div class="digit-wrapper" id="sec-ones"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="date" id="date"></div>
+
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">🌙</button>
+
+    <button class="fullscreen-btn" onclick="toggleFullscreen()">FULLSCREEN</button>
+
+    <script>
+        class FlipDigit {
+            constructor(element) {
+                this.element = element;
+                this.currentValue = '0';
+                this.isFlipped = false; // Track which side is showing
+                
+                // Create the flip structure
+                this.element.innerHTML = `
+                    <div class="digit-flipper">
+                        <div class="digit-card digit-card-front">
+                            <div class="digit-number">0</div>
+                        </div>
+                        <div class="digit-card digit-card-back">
+                            <div class="digit-number">0</div>
+                        </div>
+                    </div>
+                `;
+                
+                this.flipper = this.element.querySelector('.digit-flipper');
+                this.frontNumber = this.element.querySelector('.digit-card-front .digit-number');
+                this.backNumber = this.element.querySelector('.digit-card-back .digit-number');
+            }
+
+            flip(newValue) {
+                if (newValue === this.currentValue) {
+                    return;
+                }
+
+                // Determine which card is currently hidden (will be shown next)
+                if (this.isFlipped) {
+                    // Currently showing back, so update front with new value
+                    this.frontNumber.textContent = newValue;
+                } else {
+                    // Currently showing front, so update back with new value
+                    this.backNumber.textContent = newValue;
+                }
+
+                // Toggle flip state
+                this.isFlipped = !this.isFlipped;
+                
+                // Apply or remove flipped class
+                if (this.isFlipped) {
+                    this.flipper.classList.add('flipped');
+                } else {
+                    this.flipper.classList.remove('flipped');
+                }
+
+                this.currentValue = newValue;
+            }
+
+            setImmediate(value) {
+                this.currentValue = value;
+                this.frontNumber.textContent = value;
+                this.backNumber.textContent = value;
+                this.isFlipped = false;
+                this.flipper.classList.remove('flipped');
+            }
+        }
+
+        // Initialize all digits
+        const digits = {
+            hourTens: new FlipDigit(document.getElementById('hour-tens')),
+            hourOnes: new FlipDigit(document.getElementById('hour-ones')),
+            minTens: new FlipDigit(document.getElementById('min-tens')),
+            minOnes: new FlipDigit(document.getElementById('min-ones')),
+            secTens: new FlipDigit(document.getElementById('sec-tens')),
+            secOnes: new FlipDigit(document.getElementById('sec-ones'))
+        };
+
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+
+            // Update each digit
+            digits.hourTens.flip(hours[0]);
+            digits.hourOnes.flip(hours[1]);
+            digits.minTens.flip(minutes[0]);
+            digits.minOnes.flip(minutes[1]);
+            digits.secTens.flip(seconds[0]);
+            digits.secOnes.flip(seconds[1]);
+
+            // Update date
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('date').textContent = 
+                now.toLocaleDateString('en-US', options).toUpperCase();
+        }
+
+        function initClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+
+            // Set initial values
+            digits.hourTens.setImmediate(hours[0]);
+            digits.hourOnes.setImmediate(hours[1]);
+            digits.minTens.setImmediate(minutes[0]);
+            digits.minOnes.setImmediate(minutes[1]);
+            digits.secTens.setImmediate(seconds[0]);
+            digits.secOnes.setImmediate(seconds[1]);
+
+            // Update date
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('date').textContent = 
+                now.toLocaleDateString('en-US', options).toUpperCase();
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        function toggleTheme() {
+            const body = document.body;
+            const themeBtn = document.getElementById('themeToggle');
+            
+            if (body.classList.contains('light-mode')) {
+                // Switch to dark mode
+                body.classList.remove('light-mode');
+                themeBtn.textContent = '🌙';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                // Switch to light mode
+                body.classList.add('light-mode');
+                themeBtn.textContent = '☀️';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        // Load saved theme preference
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const body = document.body;
+            const themeBtn = document.getElementById('themeToggle');
+            
+            if (savedTheme === 'light') {
+                body.classList.add('light-mode');
+                themeBtn.textContent = '☀️';
+            } else {
+                themeBtn.textContent = '🌙';
+            }
+        }
+
+        // Initialize everything
+        loadTheme();
+        initClock();
+        setInterval(updateClock, 1000);
+    </script>
+</body>
+</html>
